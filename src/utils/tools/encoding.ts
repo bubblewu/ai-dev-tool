@@ -23,10 +23,32 @@ export function processBase64(input: string): string {
 
 // URL 编码/解码
 export function processUrlEncode(input: string): string {
-  // ...
+  try {
+    // 尝试解码（如果输入是已编码的）
+    const decoded = decodeURIComponent(input);
+    // 如果解码后与输入相同，则可能是未编码的，进行编码
+    if (decoded === input) {
+      return encodeURIComponent(input);
+    }
+    return decoded;
+  } catch (error) {
+    // 如果解码失败，执行编码
+    return encodeURIComponent(input);
+  }
 }
 
 // HTML 编码/解码
 export function processHtmlEncode(input: string): string {
-  // ...
+  // 创建一个临时元素
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = input;
+  const decoded = textarea.value;
+  
+  // 如果解码后与输入相同，则可能是未编码的，进行编码
+  if (decoded === input) {
+    const div = document.createElement('div');
+    div.textContent = input;
+    return div.innerHTML;
+  }
+  return decoded;
 } 
