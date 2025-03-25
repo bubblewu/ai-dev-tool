@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useHistory } from '@/contexts/HistoryContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Link from 'next/link';
@@ -18,21 +18,23 @@ export default function HistoryPage() {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   
-  // 过滤历史记录
-  const filteredHistory = history.filter(item => 
-    t(item.tool).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.input.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.output.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 使用 useMemo 缓存过滤结果
+  const filteredHistory = useMemo(() => {
+    return history.filter(item => 
+      t(item.tool).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.input.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.output.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [history, searchTerm, t]);
   
-  // 复制到剪贴板
-  const copyToClipboard = (text: string) => {
+  // 使用 useCallback 缓存函数引用
+  const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast.success(t('copied'));
     }).catch(err => {
       console.error('复制失败:', err);
     });
-  };
+  }, [t]);
   
   // 格式化日期
   const formatDate = (timestamp: number) => {

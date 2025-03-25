@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import ThemeToggle from './ThemeToggle';
 import { 
@@ -11,39 +11,121 @@ import {
   InformationCircleIcon,
   Bars3Icon,
   XMarkIcon,
-  LanguageIcon
+  LanguageIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const pathname = usePathname();
+  const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchDropdownRef = useRef<HTMLDivElement>(null);
 
+  // 切换语言
   const toggleLanguage = () => {
-    setLanguage(language === 'zh' ? 'en' : 'zh');
+    const newLang = language === 'zh' ? 'en' : 'zh';
+    setLanguage(newLang);
   };
 
+  // 切换搜索框
+  const toggleSearch = () => {
+    setIsSearchOpen(!isSearchOpen);
+    if (!isSearchOpen) {
+      // 当打开搜索框时，等待DOM更新后聚焦输入框
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    } else {
+      // 关闭搜索框时清空搜索内容
+      setSearchTerm('');
+    }
+  };
+
+  // 处理搜索提交
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      // 执行搜索逻辑 - 跳转到首页并带上搜索参数
+      router.push(`/?search=${encodeURIComponent(searchTerm)}`);
+      setIsSearchOpen(false);
+    }
+  };
+
+  // 点击外部关闭搜索框
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    if (isSearchOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSearchOpen]);
+
   return (
-    <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90">
+    <nav className="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700 sticky top-0 z-30">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-        <Link href="/" className="flex items-center">
-          <div className="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg mr-2">
-            <svg className="w-6 h-6 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            </svg>
-          </div>
-          <span className="self-center text-xl font-semibold whitespace-nowrap text-gray-800 dark:text-white">
+        <Link href="/" className="flex flex-col">
+          <span className="self-center text-xl font-semibold whitespace-nowrap text-gray-900 dark:text-white">
             {t('toolbox')}
+          </span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {t('toolbox.description')}
           </span>
         </Link>
         
-        <div className="flex md:order-2 items-center space-x-3">
+        <div className="flex items-center md:order-2 space-x-2">
+          {/* 搜索按钮 */}
+          <button
+            onClick={toggleSearch}
+            className="p-2 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
+            aria-label="搜索"
+          >
+            <MagnifyingGlassIcon className="w-4 h-4" />
+          </button>
+          
+          {/* 搜索下拉框 */}
+          <div className="relative" ref={searchDropdownRef}>
+            {isSearchOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 p-3">
+                <form onSubmit={handleSearchSubmit}>
+                  <div className="relative">
+                    <input
+                      ref={searchInputRef}
+                      type="search"
+                      className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                      placeholder={t('search.placeholder')}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    >
+                      <MagnifyingGlassIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+          
           <ThemeToggle />
           
           <button 
             onClick={toggleLanguage}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 flex items-center"
+            aria-label="切换语言"
           >
             <LanguageIcon className="w-4 h-4 mr-1" />
             {language === 'zh' ? 'English' : '中文'}
@@ -53,6 +135,7 @@ export default function Navbar() {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             type="button" 
             className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 ml-2"
+            aria-label="菜单"
           >
             <span className="sr-only">打开主菜单</span>
             {isMenuOpen ? (

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
@@ -8,12 +9,20 @@ import {
   DocumentTextIcon, 
   LockClosedIcon, 
   ArrowPathIcon, 
-  SparklesIcon 
+  SparklesIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 export default function Home() {
   const { t } = useLanguage();
-  const [searchTerm, setSearchTerm] = useState('');
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get('search') || '';
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+  
+  // 当URL参数变化时更新搜索词
+  useEffect(() => {
+    setSearchTerm(searchParams.get('search') || '');
+  }, [searchParams]);
   
   // 工具分类和图标映射
   const toolCategories = [
@@ -71,25 +80,21 @@ export default function Home() {
     },
   ];
 
-  // 搜索功能
-  const filteredCategories = toolCategories.map(category => ({
-    ...category,
-    tools: category.tools.filter(tool => 
-      tool.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  })).filter(category => category.tools.length > 0);
+  // 使用 useMemo 缓存过滤结果，避免每次渲染都重新计算
+  const filteredCategories = useMemo(() => {
+    return toolCategories.map(category => ({
+      ...category,
+      tools: category.tools.filter(tool => 
+        tool.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    })).filter(category => category.tools.length > 0);
+  }, [searchTerm, toolCategories]);
 
   return (
     <div className="w-full container mx-auto px-4 py-8 bg-white dark:bg-gray-900">
-      <header className="mb-10 text-center">
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-3">
-          {t('toolbox')}
-        </h1>
-        <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-          {t('toolbox.description')}
-        </p>
-        
-        <div className="max-w-md mx-auto">
+      {/* 只有当没有通过导航栏搜索时才显示搜索框 */}
+      {!initialSearch && (
+        <div className="max-w-md mx-auto mb-10">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
@@ -105,7 +110,23 @@ export default function Home() {
             />
           </div>
         </div>
-      </header>
+      )}
+
+      {/* 显示搜索结果 */}
+      {searchTerm && (
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+            搜索结果: "{searchTerm}"
+          </h2>
+          <button 
+            onClick={() => setSearchTerm('')}
+            className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+          >
+            <XMarkIcon className="w-4 h-4 mr-1" />
+            清除搜索
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredCategories.map((category) => (
