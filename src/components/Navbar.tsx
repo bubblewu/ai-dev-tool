@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useHistory } from '@/contexts/HistoryContext';
 import ThemeToggle from './ThemeToggle';
 import { 
   HomeIcon, 
@@ -12,18 +13,30 @@ import {
   Bars3Icon,
   XMarkIcon,
   LanguageIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isRecentOpen, setIsRecentOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const pathname = usePathname();
   const router = useRouter();
   const { language, setLanguage, t } = useLanguage();
+  const { history } = useHistory();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchDropdownRef = useRef<HTMLDivElement>(null);
+  const recentDropdownRef = useRef<HTMLDivElement>(null);
+
+  // 获取最近使用的5个工具
+  const recentTools = history.slice(0, 5).map(item => ({
+    id: item.tool,
+    category: item.category,
+    name: t(item.tool),
+    timestamp: item.timestamp
+  }));
 
   // 切换语言
   const toggleLanguage = () => {
@@ -45,6 +58,11 @@ export default function Navbar() {
     }
   };
 
+  // 切换最近使用下拉菜单
+  const toggleRecent = () => {
+    setIsRecentOpen(!isRecentOpen);
+  };
+
   // 处理搜索提交
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,21 +73,28 @@ export default function Navbar() {
     }
   };
 
-  // 点击外部关闭搜索框
+  // 点击外部关闭搜索框和最近使用下拉菜单
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
         setIsSearchOpen(false);
       }
+      if (recentDropdownRef.current && !recentDropdownRef.current.contains(event.target as Node)) {
+        setIsRecentOpen(false);
+      }
     };
 
-    if (isSearchOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isSearchOpen]);
+  }, []);
+
+  // 格式化日期
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <nav className="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700 sticky top-0 z-30">
@@ -83,59 +108,107 @@ export default function Navbar() {
           </span>
         </Link>
         
-        <div className="flex items-center md:order-2 space-x-2">
+        <div className="flex items-center md:order-2 space-x-3">
           {/* 搜索按钮 */}
-          <button
-            onClick={toggleSearch}
-            className="p-2 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
-            aria-label="搜索"
-          >
-            <MagnifyingGlassIcon className="w-4 h-4" />
-          </button>
-          
-          {/* 搜索下拉框 */}
           <div className="relative" ref={searchDropdownRef}>
+            <button
+              type="button"
+              onClick={toggleSearch}
+              className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
+            >
+              <MagnifyingGlassIcon className="w-5 h-5" />
+              <span className="sr-only">搜索</span>
+            </button>
+            
+            {/* 搜索下拉框 */}
             {isSearchOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 p-3">
+              <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg dark:bg-gray-700 p-3">
                 <form onSubmit={handleSearchSubmit}>
                   <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <MagnifyingGlassIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                    </div>
                     <input
-                      ref={searchInputRef}
                       type="search"
-                      className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                      ref={searchInputRef}
+                      className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
                       placeholder={t('search.placeholder')}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      required
                     />
-                    <button
-                      type="submit"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                    >
-                      <MagnifyingGlassIcon className="w-4 h-4" />
-                    </button>
                   </div>
                 </form>
               </div>
             )}
           </div>
           
-          <ThemeToggle />
+          {/* 最近使用按钮 */}
+          <div className="relative" ref={recentDropdownRef}>
+            <button
+              type="button"
+              onClick={toggleRecent}
+              className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none flex items-center"
+            >
+              <ClockIcon className="w-5 h-5 mr-1" />
+              <span className="hidden md:inline-block text-sm">最近使用</span>
+              <ChevronDownIcon className="w-4 h-4 ml-1" />
+            </button>
+            
+            {/* 最近使用下拉菜单 */}
+            {isRecentOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg dark:bg-gray-700 p-3">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">最近使用的工具</h3>
+                {recentTools.length > 0 ? (
+                  <ul className="space-y-2">
+                    {recentTools.map((tool, index) => (
+                      <li key={index} className="text-sm">
+                        <Link 
+                          href={`/tools/${tool.category}/${tool.id}`}
+                          className="block p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg"
+                          onClick={() => setIsRecentOpen(false)}
+                        >
+                          <div className="font-medium text-gray-900 dark:text-white">{tool.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{formatDate(tool.timestamp)}</div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">暂无使用记录</p>
+                )}
+                <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <Link 
+                    href="/history"
+                    className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex justify-center items-center"
+                    onClick={() => setIsRecentOpen(false)}
+                  >
+                    查看全部历史记录
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
           
-          <button 
+          {/* 语言切换按钮 */}
+          <button
+            type="button"
             onClick={toggleLanguage}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 flex items-center"
-            aria-label="切换语言"
+            className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
           >
-            <LanguageIcon className="w-4 h-4 mr-1" />
-            {language === 'zh' ? 'English' : '中文'}
+            <LanguageIcon className="w-5 h-5" />
+            <span className="sr-only">切换语言</span>
           </button>
           
-          <button 
+          {/* 主题切换按钮 */}
+          <ThemeToggle />
+          
+          {/* 移动端菜单按钮 */}
+          <button
+            type="button"
+            className="inline-flex items-center p-2 w-10 h-10 justify-center text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            type="button" 
-            className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600 ml-2"
-            aria-label="菜单"
+            aria-controls="mobile-menu"
+            aria-expanded={isMenuOpen}
           >
             <span className="sr-only">打开主菜单</span>
             {isMenuOpen ? (

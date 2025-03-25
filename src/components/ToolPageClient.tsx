@@ -11,10 +11,14 @@ import {
   ClipboardDocumentIcon, 
   TrashIcon,
   KeyIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ShareIcon,
+  InformationCircleIcon,
+  AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline';
 import { processBase64, processUrlEncode, processHtmlEncode } from '@/utils/tools/encoding';
 import { processJsonFormat, processHtmlFormat, processXmlFormat, processCssFormat } from '@/utils/tools/formatting';
+import { useStats } from '@/contexts/StatsContext';
 
 interface ToolPageClientProps {
   category: string;
@@ -29,6 +33,10 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
   const { addToHistory } = useHistory();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { incrementToolUsage } = useStats();
+  const [showHelp, setShowHelp] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [indentSize, setIndentSize] = useState(2); // 例如：JSON格式化的缩进大小
 
   // 获取当前工具名称
   const toolName = t(tool);
@@ -57,6 +65,9 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
     setError(null);
     
     try {
+      // 增加工具使用次数
+      incrementToolUsage(tool);
+      
       let result = '';
       
       if (category === 'encode-decode') {
@@ -69,7 +80,7 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
         }
       } else if (category === 'format') {
         if (tool === 'json-format') {
-          result = processJsonFormat(input);
+          result = processJsonFormat(input, indentSize);
         } else if (tool === 'html-format') {
           result = processHtmlFormat(input);
         } else if (tool === 'xml-format') {
@@ -319,7 +330,7 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
     } finally {
       setIsProcessing(false);
     }
-  }, [addToHistory, category, input, key, tool]);
+  }, [addToHistory, category, input, key, tool, incrementToolUsage, indentSize]);
 
   // 键盘快捷键处理
   useEffect(() => {
@@ -345,16 +356,97 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
     }
   }, [category, tool, handleProcess]);
 
+  // 分享结果
+  const shareResult = useCallback(async () => {
+    if (!output) return;
+    
+    // 创建分享内容
+    const shareText = `${toolName} 结果:\n\n${output.substring(0, 500)}${output.length > 500 ? '...' : ''}`;
+    
+    // 检查是否支持网页分享API
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${toolName} - AI开发工具箱`,
+          text: shareText,
+          url: window.location.href
+        });
+      } catch (error) {
+        console.error('分享失败:', error);
+        // 回退到复制到剪贴板
+        copyToClipboard();
+      }
+    } else {
+      // 不支持分享API，直接复制到剪贴板
+      copyToClipboard();
+      toast.success('已复制到剪贴板，可以粘贴分享');
+    }
+  }, [output, toolName, copyToClipboard]);
+
   return (
     <div className="w-full container mx-auto px-4 py-8 bg-white dark:bg-gray-900">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-          {toolName}
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+            {toolName}
+          </h1>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              aria-label="工具设置"
+            >
+              <AdjustmentsHorizontalIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowHelp(!showHelp)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              aria-label="帮助信息"
+            >
+              <InformationCircleIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
         <p className="text-gray-600 dark:text-gray-300">
           {t(`${tool}.description`)}
         </p>
+        
+        {/* 帮助信息 */}
+        {showHelp && (
+          <div className="mt-4 p-4 bg-blue-50 text-blue-800 rounded-lg dark:bg-blue-900/20 dark:text-blue-300">
+            <h3 className="font-medium mb-2">使用说明</h3>
+            <p className="text-sm mb-2">{t(`${tool}.help`)}</p>
+            <h4 className="font-medium text-sm mt-3 mb-1">示例:</h4>
+            <pre className="text-xs bg-white dark:bg-gray-800 p-2 rounded overflow-x-auto">
+              {t(`${tool}.example`)}
+            </pre>
+          </div>
+        )}
       </div>
+      
+      {/* 工具设置 */}
+      {showSettings && (
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg dark:bg-gray-800">
+          <h3 className="font-medium mb-3">工具设置</h3>
+          {(tool === 'json-format' || tool === 'xml-format' || tool === 'css-format') && (
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                缩进大小
+              </label>
+              <select
+                value={indentSize}
+                onChange={(e) => setIndentSize(Number(e.target.value))}
+                className="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+              >
+                <option value="2">2 空格</option>
+                <option value="4">4 空格</option>
+                <option value="8">8 空格</option>
+              </select>
+            </div>
+          )}
+          {/* 其他工具特定设置 */}
+        </div>
+      )}
       
       <div className="space-y-6">
         {/* AES加密特殊处理 - 显示密钥输入框 */}
@@ -405,14 +497,24 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
               <DocumentTextIcon className="w-5 h-5 mr-1" />
               {t('output')}
             </label>
-            <button
-              onClick={copyToClipboard}
-              className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
-              disabled={!output}
-            >
-              <ClipboardDocumentIcon className="w-4 h-4 mr-1" />
-              {t('copy')}
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={shareResult}
+                className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                disabled={!output}
+              >
+                <ShareIcon className="w-4 h-4 mr-1" />
+                {t('share')}
+              </button>
+              <button
+                onClick={copyToClipboard}
+                className="text-sm text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center"
+                disabled={!output}
+              >
+                <ClipboardDocumentIcon className="w-4 h-4 mr-1" />
+                {t('copy')}
+              </button>
+            </div>
           </div>
           <textarea
             className="w-full h-64 p-4 border border-gray-300 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
@@ -429,7 +531,7 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
         </div>
       )}
       
-      <div className="mt-8 flex justify-center">
+      <div className="mt-8 flex flex-col items-center">
         <button
           onClick={handleProcess}
           disabled={isProcessing || !input.trim()}
@@ -450,6 +552,9 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
             </>
           )}
         </button>
+        <span className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          快捷键: {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
+        </span>
       </div>
     </div>
   );

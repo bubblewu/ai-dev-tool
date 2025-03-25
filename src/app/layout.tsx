@@ -7,6 +7,7 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "next-themes";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { HistoryProvider } from "@/contexts/HistoryContext";
+import { StatsProvider } from "@/contexts/StatsContext";
 import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -28,14 +29,16 @@ export default function RootLayout({
           <SettingsProvider>
             <LanguageProvider>
               <HistoryProvider>
-                <div className="flex flex-col min-h-screen w-full bg-gray-50 dark:bg-gray-900">
-                  <Navbar />
-                  <main className="flex-grow w-full bg-gray-50 dark:bg-gray-900">
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
-                <Toaster position="top-right" />
+                <StatsProvider>
+                  <div className="flex flex-col min-h-screen w-full bg-gray-50 dark:bg-gray-900">
+                    <Navbar />
+                    <main className="flex-grow w-full bg-gray-50 dark:bg-gray-900">
+                      {children}
+                    </main>
+                    <Footer />
+                  </div>
+                  <Toaster position="top-right" />
+                </StatsProvider>
               </HistoryProvider>
             </LanguageProvider>
           </SettingsProvider>

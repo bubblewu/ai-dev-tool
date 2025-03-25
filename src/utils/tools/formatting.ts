@@ -1,8 +1,8 @@
 // JSON 格式化
-export function processJsonFormat(input: string): string {
+export function processJsonFormat(input: string, indentSize: number = 2): string {
   try {
     const parsed = JSON.parse(input);
-    return JSON.stringify(parsed, null, 2);
+    return JSON.stringify(parsed, null, indentSize);
   } catch (error) {
     console.error('JSON格式化错误:', error);
     throw new Error('JSON解析失败，请检查输入格式');
