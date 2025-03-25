@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { ThemeProvider } from "next-themes";
+import { SettingsProvider } from "@/contexts/SettingsContext";
+import { HistoryProvider } from "@/contexts/HistoryContext";
+import { Toaster } from "react-hot-toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,14 +22,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh">
-      <body className={inter.className}>
-        <LanguageProvider>
-          <Navbar />
-          <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {children}
-          </main>
-        </LanguageProvider>
+    <html lang="zh" suppressHydrationWarning className="h-full">
+      <body className={`${inter.className} h-full`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <SettingsProvider>
+            <LanguageProvider>
+              <HistoryProvider>
+                <div className="flex flex-col min-h-screen w-full bg-gray-50 dark:bg-gray-900">
+                  <Navbar />
+                  <main className="flex-grow w-full bg-gray-50 dark:bg-gray-900">
+                    {children}
+                  </main>
+                  <Footer />
+                </div>
+                <Toaster position="top-right" />
+              </HistoryProvider>
+            </LanguageProvider>
+          </SettingsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

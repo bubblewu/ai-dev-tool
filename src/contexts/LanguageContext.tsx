@@ -42,6 +42,10 @@ const translations: Translations = {
     'zh': '处理',
     'en': 'Process',
   },
+  'search.placeholder': {
+    'zh': '搜索工具...',
+    'en': 'Search tools...',
+  },
   'encode-decode': {
     'zh': '编码转换',
     'en': 'Encoding & Decoding',
@@ -54,6 +58,14 @@ const translations: Translations = {
     'zh': '加密解密',
     'en': 'Encryption & Decryption',
   },
+  'converters': {
+    'zh': '格式转换',
+    'en': 'Format Converters',
+  },
+  'generators': {
+    'zh': '生成工具',
+    'en': 'Generators',
+  },
   'base64': {
     'zh': 'Base64编码解码',
     'en': 'Base64 Encode/Decode',
@@ -61,6 +73,10 @@ const translations: Translations = {
   'url-encode': {
     'zh': 'URL编码解码',
     'en': 'URL Encode/Decode',
+  },
+  'html-encode': {
+    'zh': 'HTML编码解码',
+    'en': 'HTML Encode/Decode',
   },
   'json-format': {
     'zh': 'JSON格式化',
@@ -70,6 +86,14 @@ const translations: Translations = {
     'zh': 'HTML格式化',
     'en': 'HTML Formatter',
   },
+  'xml-format': {
+    'zh': 'XML格式化',
+    'en': 'XML Formatter',
+  },
+  'css-format': {
+    'zh': 'CSS格式化',
+    'en': 'CSS Formatter',
+  },
   'md5': {
     'zh': 'MD5加密',
     'en': 'MD5 Encryption',
@@ -77,6 +101,70 @@ const translations: Translations = {
   'sha1': {
     'zh': 'SHA1加密',
     'en': 'SHA1 Encryption',
+  },
+  'sha256': {
+    'zh': 'SHA256加密',
+    'en': 'SHA256 Encryption',
+  },
+  'aes': {
+    'zh': 'AES加密解密',
+    'en': 'AES Encryption/Decryption',
+  },
+  'json-to-xml': {
+    'zh': 'JSON转XML',
+    'en': 'JSON to XML',
+  },
+  'xml-to-json': {
+    'zh': 'XML转JSON',
+    'en': 'XML to JSON',
+  },
+  'json-to-yaml': {
+    'zh': 'JSON转YAML',
+    'en': 'JSON to YAML',
+  },
+  'uuid': {
+    'zh': 'UUID生成器',
+    'en': 'UUID Generator',
+  },
+  'password': {
+    'zh': '密码生成器',
+    'en': 'Password Generator',
+  },
+  'lorem-ipsum': {
+    'zh': '随机文本生成器',
+    'en': 'Lorem Ipsum Generator',
+  },
+  'copy': {
+    'zh': '复制',
+    'en': 'Copy',
+  },
+  'copied': {
+    'zh': '已复制',
+    'en': 'Copied',
+  },
+  'clear': {
+    'zh': '清空',
+    'en': 'Clear',
+  },
+  'settings': {
+    'zh': '设置',
+    'en': 'Settings',
+  },
+  'history': {
+    'zh': '历史记录',
+    'en': 'History',
+  },
+  'clear.history': {
+    'zh': '清空历史',
+    'en': 'Clear History',
+  },
+  'no.history': {
+    'zh': '暂无历史记录',
+    'en': 'No history records',
+  },
+  'search.history': {
+    'zh': '搜索历史记录...',
+    'en': 'Search history...',
   },
 };
 

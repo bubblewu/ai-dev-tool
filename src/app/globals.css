@@ -18,6 +18,9 @@
   --apple-gray4: #d1d1d6;
   --apple-gray5: #e5e5ea;
   --apple-gray6: #f2f2f7;
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 245, 245, 245;
+  --background-end-rgb: 255, 255, 255;
 }
 
 @theme inline {
@@ -31,13 +34,30 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 15, 23, 42;
+    --background-end-rgb: 30, 41, 59;
   }
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-start-rgb));
+}
+
+.dark body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-start-rgb));
 }
 
 /* 应用苹果风格 */
@@ -78,9 +98,74 @@ button.hover\:bg-blue-700:hover {
 nav {
   background-color: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
+  width: 100%;
 }
 
 .dark nav {
   background-color: rgba(28, 28, 30, 0.8);
   backdrop-filter: blur(10px);
+}
+
+/* 修复导航栏在暗黑模式下的背景问题 */
+.dark .bg-gray-50 {
+  background-color: #1e293b;
+}
+
+.dark .md\:bg-transparent {
+  background-color: transparent;
+}
+
+.dark .md\:dark\:bg-transparent {
+  background-color: transparent;
+}
+
+/* 确保导航栏链接在暗黑模式下可见 */
+.dark .text-gray-900 {
+  color: #f1f5f9;
+}
+
+.dark .border-gray-100 {
+  border-color: #334155;
+}
+
+/* 确保所有卡片在暗黑模式下有正确的背景色 */
+.dark .bg-white {
+  background-color: #1e293b;
+}
+
+.dark .text-gray-800 {
+  color: #f1f5f9;
+}
+
+/* 增强暗黑模式下的文本对比度 */
+.dark .text-gray-600 {
+  color: #cbd5e1;
+}
+
+.dark .text-gray-500 {
+  color: #94a3b8;
+}
+
+.dark .text-gray-400 {
+  color: #cbd5e1;
+}
+
+.dark .text-gray-300 {
+  color: #e2e8f0;
+}
+
+/* 确保容器在暗黑模式下有正确的背景色 */
+.dark .container {
+  background-color: #1e293b;
+}
+
+/* 修复页面边缘的白色问题 */
+.dark #__next,
+.dark main {
+  background-color: #0f172a;
+}
+
+/* 确保整个页面都有正确的背景色 */
+.dark .min-h-screen {
+  background-color: #0f172a;
 }
