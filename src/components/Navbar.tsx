@@ -1,22 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useTheme } from "next-themes";
-import { 
-  HomeIcon, 
-  ClockIcon, 
-  InformationCircleIcon,
-  Bars3Icon,
-  XMarkIcon,
-  LanguageIcon,
-  MagnifyingGlassIcon,
-  SunIcon,
-  MoonIcon,
-  EllipsisHorizontalIcon
-} from '@heroicons/react/24/outline';
+import ThemeToggle from './ThemeToggle';
 
 // 工具分类
 const categories = [
@@ -31,346 +19,214 @@ const categories = [
 ];
 
 export default function Navbar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isMoreCategoriesOpen, setIsMoreCategoriesOpen] = useState(false);
-  const [visibleCategories, setVisibleCategories] = useState<typeof categories>([]);
-  const [hiddenCategories, setHiddenCategories] = useState<typeof categories>([]);
+  const { t } = useLanguage();
   const pathname = usePathname();
-  const router = useRouter();
-  const { language, setLanguage, t } = useLanguage();
-  const { theme, setTheme } = useTheme();
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchDropdownRef = useRef<HTMLDivElement>(null);
-  const moreCategoriesRef = useRef<HTMLDivElement>(null);
-  const navRef = useRef<HTMLDivElement>(null);
-  const navContainerRef = useRef<HTMLDivElement>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-  // 切换语言
-  const toggleLanguage = () => {
-    const newLang = language === 'zh' ? 'en' : 'zh';
-    setLanguage(newLang);
-  };
-
-  // 切换搜索框
-  const toggleSearch = () => {
-    setIsSearchOpen(!isSearchOpen);
-    if (!isSearchOpen) {
-      // 当打开搜索框时，等待DOM更新后聚焦输入框
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
-    } else {
-      // 关闭搜索框时清空搜索内容
-      setSearchTerm('');
-    }
-  };
-
-  // 处理搜索提交
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      // 关闭搜索框
-      setIsSearchOpen(false);
-      // 导航到首页并带上搜索参数
-      router.push(`/?search=${encodeURIComponent(searchTerm.trim())}`);
-    }
-  };
-
-  // 点击外部关闭下拉菜单
+  // 监听滚动事件，添加导航栏阴影
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
-        setIsSearchOpen(false);
-      }
-      if (moreCategoriesRef.current && !moreCategoriesRef.current.contains(event.target as Node)) {
-        setIsMoreCategoriesOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // 关闭菜单当路由变化时
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [pathname]);
-
-  // 修改主题切换函数
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
-
-  // 根据导航栏宽度调整可见类别
-  useEffect(() => {
-    const calculateVisibleCategories = () => {
-      if (!navRef.current || !navContainerRef.current) return;
-      
-      const navWidth = navRef.current.offsetWidth;
-      const containerWidth = navContainerRef.current.offsetWidth;
-      const mainNavItems = navRef.current.querySelectorAll('.main-nav-item');
-      const mainNavItemsWidth = Array.from(mainNavItems).reduce((total, item) => total + item.clientWidth, 0);
-      
-      // 计算可用于类别的宽度
-      const availableWidth = navWidth - mainNavItemsWidth - 50; // 50px 作为缓冲
-      
-      // 每个类别项的估计宽度
-      const categoryItemWidth = 100; // 根据实际情况调整
-      
-      // 计算可以显示的类别数量
-      const visibleCount = Math.max(1, Math.floor(availableWidth / categoryItemWidth));
-      
-      // 更新可见和隐藏的类别
-      setVisibleCategories(categories.slice(0, visibleCount));
-      setHiddenCategories(categories.slice(visibleCount));
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
     };
     
-    // 初始计算
-    calculateVisibleCategories();
-    
-    // 监听窗口大小变化
-    window.addEventListener('resize', calculateVisibleCategories);
-    
-    return () => {
-      window.removeEventListener('resize', calculateVisibleCategories);
-    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <nav className="bg-white border-b border-gray-200 dark:bg-gray-800 dark:border-gray-700 sticky top-0 z-30">
-      <div ref={navContainerRef} className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
-        <Link href="/" className="flex flex-col">
-          <span className="self-center text-xl font-semibold whitespace-nowrap text-gray-900 dark:text-white">
-            {t('toolbox')}
-          </span>
-          <span className="text-xs text-gray-600 dark:text-gray-400">
-            {t('toolbox.description')}
-          </span>
-        </Link>
-        
-        <div className="flex items-center md:order-2 space-x-3">
-          {/* 搜索按钮 */}
-          <div className="relative" ref={searchDropdownRef}>
-            <button
-              type="button"
-              onClick={toggleSearch}
-              className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
-            >
-              <MagnifyingGlassIcon className="w-5 h-5" />
-              <span className="sr-only">搜索</span>
-            </button>
-            
-            {/* 搜索下拉框 */}
-            {isSearchOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg dark:bg-gray-700 p-2 z-50">
-                <form onSubmit={handleSearchSubmit} className="relative">
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder={t('search.placeholder')}
-                    className="w-full pl-10 pr-4 py-2 rounded-md bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500 dark:text-gray-400" />
-                </form>
-              </div>
-            )}
+    <nav className={`sticky top-0 z-50 bg-white dark:bg-gray-800 transition-shadow ${
+      scrolled ? 'shadow-md' : ''
+    }`}>
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center">
+              <span className="text-2xl mr-2">🛠️</span>
+              <span className="font-bold text-xl text-gray-900 dark:text-white hidden md:block">
+                {t('toolbox')}
+              </span>
+            </Link>
           </div>
-          
-          {/* 历史记录和关于链接 - 仅在桌面显示 */}
-          <div className="hidden md:flex items-center space-x-2">
+
+          {/* 桌面导航 */}
+          <div className="hidden md:flex items-center space-x-1">
+            {/* 分类下拉菜单 */}
+            <div className="relative group">
+              <button 
+                className="px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
+              >
+                <span>{t('categories')}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {/* 分类下拉内容 */}
+              <div className={`absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 transition-opacity duration-150 ${
+                isCategoryMenuOpen ? 'opacity-100' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
+              }`}>
+                <div className="py-1 grid grid-cols-2 gap-1">
+                  {categories.map((category) => (
+                    <Link
+                      key={category.id}
+                      href={`/?category=${category.id}`}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setIsCategoryMenuOpen(false)}
+                    >
+                      <span className="mr-2">{category.icon}</span>
+                      <span>{t(category.id)}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* 其他导航链接 */}
             <Link 
               href="/history" 
-              className={`p-2 rounded-md flex items-center ${
+              className={`px-3 py-2 rounded-md ${
                 pathname === '/history' 
-                  ? 'text-blue-500 dark:text-blue-400' 
-                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400'
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              <ClockIcon className="w-5 h-5 mr-1" />
-              <span className="text-sm">{t('history')}</span>
+              {t('history')}
             </Link>
             
             <Link 
               href="/about" 
-              className={`p-2 rounded-md flex items-center ${
+              className={`px-3 py-2 rounded-md ${
                 pathname === '/about' 
-                  ? 'text-blue-500 dark:text-blue-400' 
-                  : 'text-gray-700 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400'
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              <InformationCircleIcon className="w-5 h-5 mr-1" />
-              <span className="text-sm">{t('about')}</span>
+              {t('about')}
             </Link>
           </div>
-          
-          {/* 语言切换按钮 */}
-          <button
-            type="button"
-            onClick={toggleLanguage}
-            className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 focus:outline-none"
-          >
-            <LanguageIcon className="w-5 h-5" />
-            <span className="sr-only">切换语言</span>
-          </button>
-          
-          {/* 主题切换按钮 */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-            aria-label={theme === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
-          >
-            {theme === 'dark' ? (
-              <SunIcon className="w-5 h-5" />
-            ) : (
-              <MoonIcon className="w-5 h-5" />
-            )}
-          </button>
-          
-          {/* 移动端菜单按钮 */}
-          <button
-            type="button"
-            className="inline-flex items-center p-2 w-10 h-10 justify-center text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-controls="mobile-menu"
-            aria-expanded={isMenuOpen}
-          >
-            <span className="sr-only">打开主菜单</span>
-            {isMenuOpen ? (
-              <XMarkIcon className="w-5 h-5" />
-            ) : (
-              <Bars3Icon className="w-5 h-5" />
-            )}
-          </button>
+
+          {/* 搜索栏和主题切换 */}
+          <div className="flex items-center space-x-3">
+            <div className="hidden md:block w-64">
+              <form className="relative">
+                <div className="flex items-center rounded-md bg-gray-100 dark:bg-gray-700">
+                  <input
+                    type="text"
+                    placeholder={t('search.placeholder')}
+                    className="w-full py-2 px-3 bg-transparent text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="p-2 text-gray-500 dark:text-gray-400"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </div>
+            <ThemeToggle />
+            
+            {/* 移动端菜单按钮 */}
+            <button
+              className="md:hidden p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
         </div>
         
-        <div 
-          ref={navRef}
-          className={`items-center justify-between w-full md:flex md:w-auto md:order-1 ${isMenuOpen ? 'block' : 'hidden'}`}
-        >
-          <ul className="flex flex-col p-4 md:p-0 mt-4 font-medium border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-1 md:mt-0 md:border-0 md:bg-transparent dark:bg-gray-800 md:dark:bg-transparent dark:border-gray-700">
-            {/* 主导航项 - 仅保留首页 */}
-            <li className="main-nav-item">
-              <Link 
-                href="/" 
-                className={`block py-2 pl-3 pr-4 rounded md:p-2 flex items-center ${
-                  pathname === '/' 
-                    ? 'text-blue-500 dark:text-blue-400' 
-                    : 'text-gray-900 dark:text-white hover:text-blue-500 dark:hover:text-blue-400'
-                }`}
-                onClick={() => setIsMenuOpen(false)}
+        {/* 移动端菜单 */}
+        <div className={`md:hidden transition-all duration-300 ease-in-out ${
+          isMenuOpen ? 'max-h-96 opacity-100 pb-4' : 'max-h-0 opacity-0 overflow-hidden'
+        }`}>
+          <div className="pt-2 pb-3 space-y-1">
+            <div className="px-4 py-2">
+              <form className="relative">
+                <div className="flex items-center rounded-md bg-gray-100 dark:bg-gray-700">
+                  <input
+                    type="text"
+                    placeholder={t('search.placeholder')}
+                    className="w-full py-2 px-3 bg-transparent text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="p-2 text-gray-500 dark:text-gray-400"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            {/* 分类折叠菜单 */}
+            <div>
+              <button
+                className="w-full flex justify-between items-center px-4 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() => setIsCategoryMenuOpen(!isCategoryMenuOpen)}
               >
-                <HomeIcon className="w-5 h-5 mr-1" />
-                <span className="text-sm">{t('home')}</span>
-              </Link>
-            </li>
-            
-            {/* 移动端显示历史记录和关于链接 */}
-            <li className="md:hidden">
-              <Link 
-                href="/history" 
-                className={`block py-2 pl-3 pr-4 rounded flex items-center ${
-                  pathname === '/history' 
-                    ? 'text-blue-500 dark:text-blue-400' 
-                    : 'text-gray-900 dark:text-white hover:text-blue-500 dark:hover:text-blue-400'
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <ClockIcon className="w-5 h-5 mr-1" />
-                {t('history')}
-              </Link>
-            </li>
-            <li className="md:hidden">
-              <Link 
-                href="/about" 
-                className={`block py-2 pl-3 pr-4 rounded flex items-center ${
-                  pathname === '/about' 
-                    ? 'text-blue-500 dark:text-blue-400' 
-                    : 'text-gray-900 dark:text-white hover:text-blue-500 dark:hover:text-blue-400'
-                }`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <InformationCircleIcon className="w-5 h-5 mr-1" />
-                {t('about')}
-              </Link>
-            </li>
-            
-            {/* 分隔线 */}
-            <li className="hidden md:block border-r border-gray-300 dark:border-gray-700 h-6 self-center mx-1"></li>
-            
-            {/* 可见类别 */}
-            {visibleCategories.map(category => (
-              <li key={category.id}>
-                <Link 
-                  href={`/?category=${category.id}`}
-                  className="block py-2 pl-3 pr-4 rounded md:p-1.5 flex items-center text-gray-900 dark:text-white hover:text-blue-500 dark:hover:text-blue-400"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <span className="mr-1">{category.icon}</span>
-                  <span className="text-xs md:text-xs">{t(category.id)}</span>
-                </Link>
-              </li>
-            ))}
-            
-            {/* 更多类别按钮 */}
-            {hiddenCategories.length > 0 && (
-              <li className="relative" ref={moreCategoriesRef}>
-                <button
-                  onClick={() => setIsMoreCategoriesOpen(!isMoreCategoriesOpen)}
-                  className="block py-2 pl-3 pr-4 rounded md:p-1.5 flex items-center text-gray-900 dark:text-white hover:text-blue-500 dark:hover:text-blue-400"
-                >
-                  <EllipsisHorizontalIcon className="w-5 h-5" />
-                  <span className="text-xs md:text-xs ml-1">更多</span>
-                </button>
-                
-                {/* 更多类别下拉菜单 */}
-                {isMoreCategoriesOpen && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg dark:bg-gray-700 p-2 z-50">
-                    {hiddenCategories.map(category => (
-                      <Link 
-                        key={category.id}
-                        href={`/?category=${category.id}`}
-                        className="block p-2 rounded-lg text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center"
-                        onClick={() => {
-                          setIsMoreCategoriesOpen(false);
-                          setIsMenuOpen(false);
-                        }}
-                      >
-                        <span className="mr-2">{category.icon}</span>
-                        <span className="text-sm">{t(category.id)}</span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </li>
-            )}
-            
-            {/* 移动端类别列表 */}
-            <li className="md:hidden mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
-              <span className="block pl-3 pr-4 text-gray-500 dark:text-gray-400 font-medium mb-2">
-                {t('categories')}
-              </span>
-              <ul className="space-y-2">
-                {categories.map(category => (
-                  <li key={category.id}>
-                    <Link 
+                <span>{t('categories')}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transition-transform ${isCategoryMenuOpen ? 'transform rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <div className={`transition-all duration-300 ${
+                isCategoryMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'
+              }`}>
+                <div className="grid grid-cols-2 gap-1 px-4 py-2">
+                  {categories.map((category) => (
+                    <Link
+                      key={category.id}
                       href={`/?category=${category.id}`}
-                      className="block py-2 pl-6 pr-4 rounded flex items-center text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                      onClick={() => {
+                        setIsCategoryMenuOpen(false);
+                        setIsMenuOpen(false);
+                      }}
                     >
                       <span className="mr-2">{category.icon}</span>
-                      {t(category.id)}
+                      <span>{t(category.id)}</span>
                     </Link>
-                  </li>
-                ))}
-              </ul>
-            </li>
-          </ul>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <Link 
+              href="/history" 
+              className={`block px-4 py-2 ${
+                pathname === '/history' 
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {t('history')}
+            </Link>
+            
+            <Link 
+              href="/about" 
+              className={`block px-4 py-2 ${
+                pathname === '/about' 
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {t('about')}
+            </Link>
+          </div>
         </div>
       </div>
     </nav>

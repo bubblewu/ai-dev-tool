@@ -11,14 +11,14 @@ import PopularToolsSidebar from '@/components/PopularToolsSidebar';
 
 // 工具分类
 const categories = [
-  { id: 'encode-decode', icon: '🔄' },
-  { id: 'format', icon: '📝' },
-  { id: 'encrypt', icon: '🔒' },
-  { id: 'converters', icon: '🔄' },
-  { id: 'generators', icon: '⚙️' },
-  { id: 'text-tools', icon: '📄' },
-  { id: 'calculators', icon: '🧮' },
-  { id: 'time-tools', icon: '⏱️' },
+  { id: 'encode-decode', icon: '🔄', color: 'bg-blue-100 dark:bg-blue-900' },
+  { id: 'format', icon: '📝', color: 'bg-green-100 dark:bg-green-900' },
+  { id: 'encrypt', icon: '🔒', color: 'bg-purple-100 dark:bg-purple-900' },
+  { id: 'converters', icon: '🔄', color: 'bg-yellow-100 dark:bg-yellow-900' },
+  { id: 'generators', icon: '⚙️', color: 'bg-red-100 dark:bg-red-900' },
+  { id: 'text-tools', icon: '📄', color: 'bg-indigo-100 dark:bg-indigo-900' },
+  { id: 'calculators', icon: '🧮', color: 'bg-pink-100 dark:bg-pink-900' },
+  { id: 'time-tools', icon: '⏱️', color: 'bg-orange-100 dark:bg-orange-900' },
 ];
 
 // 工具列表
@@ -96,66 +96,109 @@ export default function Home() {
   }, [categoryParam]);
   
   return (
-    <div className="container mx-auto px-4 py-6 relative">
-      <div className="max-w-6xl mx-auto">
-        {/* 搜索结果 */}
-        {searchQuery && (
-          <div className="mb-10">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-              搜索结果: &quot;{searchQuery}&quot;
-            </h2>
-            {filteredTools.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredTools.map(tool => (
-                  <ToolCard 
-                    key={`${tool.category}-${tool.id}`}
-                    id={tool.id}
-                    category={tool.category}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                未找到匹配的工具
-              </div>
-            )}
-          </div>
-        )}
-        
-        {/* 工具分类 */}
-        {!searchQuery && (
-          <div>
-            {categories.map(category => {
-              const categoryTools = tools.filter(tool => tool.category === category.id);
-              const isActive = categoryParam === category.id;
-              
-              return (
-                <div 
-                  key={category.id} 
-                  className={`mb-10 ${isActive ? 'scroll-mt-20' : ''}`}
-                  ref={el => categoryRefs.current[category.id] = el}
-                >
-                  <h2 className={`text-xl font-bold mb-4 flex items-center ${
-                    isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
-                  }`}>
-                    <span className="mr-2">{category.icon}</span>
+    <div className="container mx-auto px-4 py-8 relative">
+      {/* 搜索结果 */}
+      {searchQuery && (
+        <div className="mb-10">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+            搜索结果: &quot;{searchQuery}&quot;
+          </h2>
+          {filteredTools.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredTools.map(tool => (
+                <ToolCard 
+                  key={`${tool.category}-${tool.id}`}
+                  id={tool.id}
+                  category={tool.category}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              未找到匹配的工具
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* 新的分类导航卡片布局 */}
+      {!searchQuery && (
+        <div>
+          <h1 className="text-3xl font-bold text-center mb-10 text-gray-900 dark:text-white">
+            AI开发工具箱
+          </h1>
+          
+          {/* 分类卡片网格 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {categories.map(category => (
+              <a 
+                key={category.id}
+                href={`?category=${category.id}`}
+                className={`${category.color} rounded-lg p-6 transition-transform hover:scale-105 shadow-md`}
+              >
+                <div className="flex items-center mb-3">
+                  <span className="text-3xl mr-3">{category.icon}</span>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                     {t(category.id)}
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {categoryTools.map(tool => (
-                      <ToolCard 
-                        key={`${tool.category}-${tool.id}`}
-                        id={tool.id}
-                        category={tool.category}
-                      />
-                    ))}
-                  </div>
                 </div>
-              );
-            })}
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  {tools.filter(tool => tool.category === category.id).length} 个工具
+                </p>
+              </a>
+            ))}
           </div>
-        )}
-      </div>
+          
+          {/* 热门工具部分 */}
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+              热门工具
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {tools.slice(0, 8).map(tool => (
+                <ToolCard 
+                  key={`${tool.category}-${tool.id}`}
+                  id={tool.id}
+                  category={tool.category}
+                />
+              ))}
+            </div>
+          </div>
+          
+          {/* 分类工具列表 */}
+          {categoryParam && (
+            <div>
+              {categories
+                .filter(category => category.id === categoryParam)
+                .map(category => {
+                  const categoryTools = tools.filter(tool => tool.category === category.id);
+                  
+                  return (
+                    <div 
+                      key={category.id} 
+                      className="scroll-mt-20"
+                      ref={el => categoryRefs.current[category.id] = el}
+                    >
+                      <h2 className="text-2xl font-bold mb-6 flex items-center text-blue-600 dark:text-blue-400">
+                        <span className="mr-3">{category.icon}</span>
+                        {t(category.id)}
+                      </h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {categoryTools.map(tool => (
+                          <ToolCard 
+                            key={`${tool.category}-${tool.id}`}
+                            id={tool.id}
+                            category={tool.category}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
       
       {/* 热门工具侧边栏 */}
       <PopularToolsSidebar />
