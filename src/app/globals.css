@@ -3,6 +3,21 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --apple-blue: #007aff;
+  --apple-green: #34c759;
+  --apple-indigo: #5856d6;
+  --apple-orange: #ff9500;
+  --apple-pink: #ff2d55;
+  --apple-purple: #af52de;
+  --apple-red: #ff3b30;
+  --apple-teal: #5ac8fa;
+  --apple-yellow: #ffcc00;
+  --apple-gray1: #8e8e93;
+  --apple-gray2: #aeaeb2;
+  --apple-gray3: #c7c7cc;
+  --apple-gray4: #d1d1d6;
+  --apple-gray5: #e5e5ea;
+  --apple-gray6: #f2f2f7;
 }
 
 @theme inline {
@@ -23,4 +38,49 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 应用苹果风格 */
+.bg-apple-blue {
+  background-color: var(--apple-blue);
+}
+
+.text-apple-blue {
+  color: var(--apple-blue);
+}
+
+/* 更新主题颜色 */
+button.bg-blue-600 {
+  background-color: var(--apple-blue);
+}
+
+button.hover\:bg-blue-700:hover {
+  background-color: #0062cc; /* 深一点的蓝色 */
+}
+
+.text-blue-500 {
+  color: var(--apple-blue);
+}
+
+.hover\:text-blue-700:hover {
+  color: #0062cc;
+}
+
+.dark .dark\:text-blue-400 {
+  color: var(--apple-teal);
+}
+
+.dark .dark\:hover\:text-blue-300:hover {
+  color: #7ad7fb;
+}
+
+/* 更新导航栏样式 */
+nav {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.dark nav {
+  background-color: rgba(28, 28, 30, 0.8);
+  backdrop-filter: blur(10px);
 }

@@ -1,30 +1,35 @@
+'use client';
+
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Home() {
+  const { t } = useLanguage();
+  
   // 工具分类
   const toolCategories = [
     {
       id: 'encode-decode',
-      name: '编码转换',
+      name: t('encode-decode'),
       tools: [
-        { id: 'base64', name: 'Base64编码解码' },
-        { id: 'url-encode', name: 'URL编码解码' },
+        { id: 'base64', name: t('base64') },
+        { id: 'url-encode', name: t('url-encode') },
       ]
     },
     {
       id: 'format',
-      name: '格式化工具',
+      name: t('format'),
       tools: [
-        { id: 'json-format', name: 'JSON格式化' },
-        { id: 'html-format', name: 'HTML格式化' },
+        { id: 'json-format', name: t('json-format') },
+        { id: 'html-format', name: t('html-format') },
       ]
     },
     {
       id: 'encrypt',
-      name: '加密解密',
+      name: t('encrypt'),
       tools: [
-        { id: 'md5', name: 'MD5加密' },
-        { id: 'sha1', name: 'SHA1加密' },
+        { id: 'md5', name: t('md5') },
+        { id: 'sha1', name: t('sha1') },
       ]
     },
   ];
@@ -32,8 +37,8 @@ export default function Home() {
   return (
     <div className="container mx-auto px-4 py-8">
       <header className="mb-10 text-center">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">AI开发工具箱</h1>
-        <p className="text-gray-600 dark:text-gray-300">一站式开发工具集合，提高您的开发效率</p>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{t('toolbox')}</h1>
+        <p className="text-gray-600 dark:text-gray-300">{t('toolbox.description')}</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -1,7 +1,13 @@
+'use client';
+
+import { useLanguage } from '@/contexts/LanguageContext';
+
 export default function About() {
+  const { t } = useLanguage();
+  
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">关于我们</h1>
+      <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">{t('about')}</h1>
       
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <p className="text-gray-700 dark:text-gray-300 mb-4">
@@ -13,9 +19,9 @@ export default function About() {
         </p>
         
         <ul className="list-disc pl-6 mb-4 text-gray-700 dark:text-gray-300">
-          <li>编码转换工具（Base64、URL编码等）</li>
-          <li>格式化工具（JSON、HTML等）</li>
-          <li>加密解密工具（MD5、SHA1等）</li>
+          <li>{t('encode-decode')}（Base64、URL编码等）</li>
+          <li>{t('format')}（JSON、HTML等）</li>
+          <li>{t('encrypt')}（MD5、SHA1等）</li>
           <li>更多工具正在开发中...</li>
         </ul>
         
