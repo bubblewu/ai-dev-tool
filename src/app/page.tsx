@@ -12,7 +12,10 @@ import {
   ArrowPathIcon, 
   SparklesIcon,
   XMarkIcon,
-  FireIcon
+  FireIcon,
+  CalculatorIcon,
+  ClockIcon,
+  DocumentDuplicateIcon
 } from '@heroicons/react/24/outline';
 
 export default function Home() {
@@ -46,6 +49,7 @@ export default function Home() {
         { id: 'base64', name: t('base64') },
         { id: 'url-encode', name: t('url-encode') },
         { id: 'html-encode', name: t('html-encode') },
+        { id: 'jwt-decode', name: t('jwt-decode') },
       ]
     },
     {
@@ -57,6 +61,7 @@ export default function Home() {
         { id: 'html-format', name: t('html-format') },
         { id: 'xml-format', name: t('xml-format') },
         { id: 'css-format', name: t('css-format') },
+        { id: 'sql-format', name: t('sql-format') },
       ]
     },
     {
@@ -68,6 +73,7 @@ export default function Home() {
         { id: 'sha1', name: t('sha1') },
         { id: 'sha256', name: t('sha256') },
         { id: 'aes', name: t('aes') },
+        { id: 'bcrypt', name: t('bcrypt') },
       ]
     },
     {
@@ -78,6 +84,9 @@ export default function Home() {
         { id: 'json-to-xml', name: t('json-to-xml') },
         { id: 'xml-to-json', name: t('xml-to-json') },
         { id: 'json-to-yaml', name: t('json-to-yaml') },
+        { id: 'yaml-to-json', name: t('yaml-to-json') },
+        { id: 'csv-to-json', name: t('csv-to-json') },
+        { id: 'json-to-csv', name: t('json-to-csv') },
       ]
     },
     {
@@ -88,6 +97,39 @@ export default function Home() {
         { id: 'uuid', name: t('uuid') },
         { id: 'password', name: t('password') },
         { id: 'lorem-ipsum', name: t('lorem-ipsum') },
+        { id: 'jwt-generator', name: t('jwt-generator') },
+      ]
+    },
+    {
+      id: 'text-tools',
+      name: t('text-tools'),
+      icon: <DocumentDuplicateIcon className="w-6 h-6 text-indigo-500" />,
+      tools: [
+        { id: 'text-diff', name: t('text-diff') },
+        { id: 'text-case-converter', name: t('text-case-converter') },
+        { id: 'markdown-preview', name: t('markdown-preview') },
+        { id: 'regex-tester', name: t('regex-tester') },
+      ]
+    },
+    {
+      id: 'calculators',
+      name: t('calculators'),
+      icon: <CalculatorIcon className="w-6 h-6 text-red-500" />,
+      tools: [
+        { id: 'color-converter', name: t('color-converter') },
+        { id: 'unit-converter', name: t('unit-converter') },
+        { id: 'date-calculator', name: t('date-calculator') },
+        { id: 'number-base-converter', name: t('number-base-converter') },
+      ]
+    },
+    {
+      id: 'time-tools',
+      name: t('time-tools'),
+      icon: <ClockIcon className="w-6 h-6 text-yellow-500" />,
+      tools: [
+        { id: 'timestamp-converter', name: t('timestamp-converter') },
+        { id: 'timezone-converter', name: t('timezone-converter') },
+        { id: 'cron-parser', name: t('cron-parser') },
       ]
     },
   ];
