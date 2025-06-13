@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useHistory } from '@/contexts/HistoryContext';
+import { useHistory, HistoryItem } from '@/contexts/HistoryContext';
 import CryptoJS from 'crypto-js';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'react-hot-toast';
@@ -10,11 +10,8 @@ import {
   ArrowPathIcon, 
   ClipboardDocumentIcon, 
   TrashIcon,
-  ArrowPathRoundedSquareIcon,
-  KeyIcon
+  ArrowPathRoundedSquareIcon
 } from '@heroicons/react/24/outline';
-import { processBase64, processUrlEncode, processHtmlEncode } from '@/utils/tools/encoding';
-import { processJsonFormat, processHtmlFormat, processXmlFormat, processCssFormat } from '@/utils/tools/formatting';
 import { useStats } from '@/contexts/StatsContext';
 
 interface ToolPageClientProps {
@@ -27,6 +24,9 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
   const [result, setResult] = useState('');
   const [key, setKey] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [mode, setMode] = useState<'encode' | 'decode'>('encode');
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<'javascript' | 'python' | 'java'>('javascript');
   const { t } = useLanguage();
   const { addToHistory } = useHistory();
   const { incrementToolUsage } = useStats();
@@ -41,7 +41,15 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
     try {
       // 根据工具类型处理输入
       if (tool === 'base64') {
-        result = processBase64(input);
+        if (mode === 'encode') {
+          result = btoa(unescape(encodeURIComponent(input)));
+        } else {
+          try {
+            result = decodeURIComponent(escape(atob(input)));
+          } catch {
+            result = atob(input);
+          }
+        }
       } else if (tool === 'url-encode') {
         // URL编码/解码
         try {
@@ -51,7 +59,7 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
           if (result === input) {
             result = encodeURIComponent(input);
           }
-        } catch (error) {
+        } catch {
           // 如果解码失败，执行编码
           result = encodeURIComponent(input);
         }
@@ -74,18 +82,25 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
         try {
           const parsed = JSON.parse(input);
           result = JSON.stringify(parsed, null, 2);
-        } catch (error) {
+        } catch {
           throw new Error('JSON解析失败，请检查输入');
         }
       } else if (tool === 'html-format') {
         // HTML格式化
-        result = processHtmlFormat(input);
+        const div = document.createElement('div');
+        div.innerHTML = input;
+        result = div.innerHTML;
       } else if (tool === 'xml-format') {
         // XML格式化
-        result = processXmlFormat(input);
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(input, 'text/xml');
+        const serializer = new XMLSerializer();
+        result = serializer.serializeToString(xmlDoc);
       } else if (tool === 'css-format') {
         // CSS格式化
-        result = processCssFormat(input);
+        result = input.replace(/\s*{\s*/g, ' {\n  ')
+          .replace(/;\s*/g, ';\n  ')
+          .replace(/}\s*/g, '\n}\n');
       } else if (tool === 'md5') {
         // MD5加密
         result = CryptoJS.MD5(input).toString();
@@ -114,7 +129,7 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
               // 执行加密
               const encrypted = CryptoJS.AES.encrypt(input, key);
               result = encrypted.toString();
-            } catch (e) {
+            } catch {
               // 解析JSON失败，执行加密
               const encrypted = CryptoJS.AES.encrypt(input, key);
               result = JSON.stringify({
@@ -124,163 +139,10 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
               });
             }
           }
-        } catch (error) {
+        } catch {
           // 如果解密失败，执行加密
           const encrypted = CryptoJS.AES.encrypt(input, key);
           result = encrypted.toString();
-        }
-      } else if (tool === 'json-to-xml') {
-        // JSON转XML
-        try {
-          const obj = JSON.parse(input);
-          
-          // 简单的JSON到XML转换函数
-          const jsonToXml = (obj: Record<string, any> | any[], rootName: string = 'root'): string => {
-            let xml = '';
-            
-            // 处理数组
-            if (Array.isArray(obj)) {
-              return obj.map(item => jsonToXml(item, 'item')).join('');
-            }
-            
-            // 处理对象
-            if (typeof obj === 'object' && obj !== null) {
-              xml += `<${rootName}>`;
-              for (const key in obj) {
-                if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                  xml += jsonToXml(obj[key], key);
-                }
-              }
-              xml += `</${rootName}>`;
-            } else {
-              // 处理基本类型
-              xml += `<${rootName}>${obj}</${rootName}>`;
-            }
-            
-            return xml;
-          };
-          
-          result = jsonToXml(obj);
-          // 格式化XML
-          result = processXmlFormat(result);
-        } catch (e) {
-          throw new Error('JSON解析失败，请检查输入');
-        }
-      } else if (tool === 'xml-to-json') {
-        // XML转JSON
-        try {
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(input, 'text/xml');
-          
-          // 检查解析错误
-          const parseError = xmlDoc.getElementsByTagName('parsererror');
-          if (parseError.length > 0) {
-            throw new Error('XML解析失败，请检查输入');
-          }
-          
-          // 简单的XML到JSON转换函数
-          const xmlToJson = (xml: Element): Record<string, unknown> => {
-            const obj: Record<string, unknown> = {};
-            
-            if (xml.nodeType === 1) { // 元素节点
-              // 处理属性
-              if (xml.attributes && xml.attributes.length > 0) {
-                obj['@attributes'] = {};
-                for (let i = 0; i < xml.attributes.length; i++) {
-                  const attribute = xml.attributes[i];
-                  (obj['@attributes'] as Record<string, string>)[attribute.nodeName] = attribute.nodeValue || '';
-                }
-              }
-            } else if (xml.nodeType === 3) { // 文本节点
-              return { '#text': xml.nodeValue?.trim() || "" };
-            }
-            
-            // 处理子节点
-            if (xml.hasChildNodes()) {
-              const childNodes = xml.childNodes;
-              
-              if (childNodes.length === 1 && childNodes[0].nodeType === 3) {
-                // 只有一个文本子节点
-                return { '#text': childNodes[0].nodeValue?.trim() || "" };
-              } else {
-                // 多个子节点或非文本节点
-                for (let i = 0; i < childNodes.length; i++) {
-                  const item = childNodes[i];
-                  const nodeName = item.nodeName;
-                  
-                  if (nodeName !== '#text' || (item.nodeValue && item.nodeValue.trim() !== '')) {
-                    if (nodeName === '#text') {
-                      obj['#text'] = item.nodeValue?.trim() || "";
-                    } else {
-                      const itemObj = xmlToJson(item as Element);
-                      
-                      if (obj[nodeName]) {
-                        // 如果已经存在同名节点，转换为数组
-                        if (!Array.isArray(obj[nodeName])) {
-                          obj[nodeName] = [obj[nodeName]];
-                        }
-                        (obj[nodeName] as unknown[]).push(itemObj);
-                      } else {
-                        obj[nodeName] = itemObj;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            
-            return obj;
-          };
-          
-          const jsonObj = xmlToJson(xmlDoc.documentElement);
-          result = JSON.stringify(jsonObj, null, 2);
-        } catch (e) {
-          throw new Error('XML解析失败，请检查输入');
-        }
-      } else if (tool === 'json-to-yaml') {
-        // JSON转YAML
-        try {
-          const obj = JSON.parse(input);
-          
-          // 简单的JSON到YAML转换函数
-          const jsonToYaml = (obj: any, indent: number = 0): string => {
-            const spaces = ' '.repeat(indent);
-            let yaml = '';
-            
-            if (Array.isArray(obj)) {
-              if (obj.length === 0) return spaces + '[]';
-              
-              for (const item of obj) {
-                if (typeof item === 'object' && item !== null) {
-                  yaml += spaces + '-\n' + jsonToYaml(item, indent + 2).trimStart();
-                } else {
-                  yaml += spaces + '- ' + item + '\n';
-                }
-              }
-            } else if (typeof obj === 'object' && obj !== null) {
-              if (Object.keys(obj).length === 0) return spaces + '{}';
-              
-              for (const key in obj) {
-                if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                  const value = obj[key];
-                  
-                  if (typeof value === 'object' && value !== null) {
-                    yaml += spaces + key + ':\n' + jsonToYaml(value, indent + 2);
-                  } else {
-                    yaml += spaces + key + ': ' + value + '\n';
-                  }
-                }
-              }
-            } else {
-              yaml += spaces + obj + '\n';
-            }
-            
-            return yaml;
-          };
-          
-          result = jsonToYaml(obj);
-        } catch (e) {
-          throw new Error('JSON解析失败，请检查输入');
         }
       } else if (tool === 'uuid') {
         // 生成UUID
@@ -331,32 +193,26 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
       setResult(result);
       
       // 添加到历史记录
-      addToHistory({
+      const historyItem: HistoryItem = {
         category,
         tool,
         input,
-        output: result,
-      });
+        result,
+        timestamp: Date.now()
+      };
+      addToHistory(historyItem);
       
-      // 增加工具使用次数
+      // 更新使用统计
       incrementToolUsage(tool);
       
       toast.success('处理成功');
     } catch (error) {
       console.error('处理错误:', error);
-      let errorMessage = '处理失败，请检查输入';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
-      toast.error(errorMessage);
+      toast.error(error instanceof Error ? error.message : '处理失败');
     } finally {
       setIsProcessing(false);
     }
-  }, [input, key, category, tool, addToHistory, incrementToolUsage]);
+  }, [input, tool, mode, key, t, addToHistory, incrementToolUsage, category]);
   
   // 使用 useMemo 优化计算密集型操作
   const processedResult = useMemo(() => {
@@ -400,112 +256,210 @@ export default function ToolPageClient({ category, tool }: ToolPageClientProps) 
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleProcess]);
-  
+
+  // 代码示例数据
+  const codeExamples = {
+    javascript: {
+      title: 'JavaScript',
+      code: `// 编码
+const encoded = btoa(unescape(encodeURIComponent(text)));
+
+// 解码
+const decoded = decodeURIComponent(escape(atob(encoded)));`
+    },
+    python: {
+      title: 'Python',
+      code: `import base64
+
+# 编码
+encoded = base64.b64encode(text.encode()).decode()
+
+# 解码
+decoded = base64.b64decode(encoded).decode()`
+    },
+    java: {
+      title: 'Java',
+      code: `import java.util.Base64;
+
+// 编码
+String encoded = Base64.getEncoder().encodeToString(text.getBytes());
+
+// 解码
+String decoded = new String(Base64.getDecoder().decode(encoded));`
+    }
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-8">
+      {/* 标题区域 */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t(tool)}</h1>
         <p className="text-gray-600 dark:text-gray-400">{t(`${tool}.description`)}</p>
-        
-        {/* 添加帮助信息 */}
-        {t(`${tool}.help`) && (
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-lg text-sm">
-            <p>{t(`${tool}.help`)}</p>
-            
-            {/* 添加示例按钮 */}
-            {t(`${tool}.example`) && (
+      </div>
+
+      {/* 功能区 - 放在最上方 */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center space-x-4">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Base64 {mode === 'encode' ? '编码' : '解码'}</h2>
+            <div className="flex items-center space-x-2">
               <button
-                onClick={() => setInput(t(`${tool}.example`))}
-                className="mt-2 text-blue-600 dark:text-blue-400 hover:underline text-xs font-medium"
+                onClick={() => setMode('encode')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                  mode === 'encode'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
               >
-                加载示例
+                编码
               </button>
+              <button
+                onClick={() => setMode('decode')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+                  mode === 'decode'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                解码
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={handleClear}
+            className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors duration-200"
+            title={t('clear')}
+          >
+            <TrashIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 输入区域 */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">输入文本</label>
+            </div>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="w-full h-48 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+              placeholder={`请输入要${mode === 'encode' ? '编码' : '解码'}的文本...`}
+            ></textarea>
+          </div>
+
+          {/* 输出区域 */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">输出结果</label>
+              <button
+                onClick={handleCopy}
+                disabled={!result}
+                className={`text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors duration-200 ${!result ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={t('copy')}
+              >
+                <ClipboardDocumentIcon className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="w-full h-48 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white overflow-auto">
+              <pre className="whitespace-pre-wrap break-words">{processedResult}</pre>
+            </div>
+          </div>
+        </div>
+
+        {/* 处理按钮 */}
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={handleProcess}
+            disabled={isProcessing || !input}
+            className={`flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 ${(isProcessing || !input) ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {isProcessing ? (
+              <>
+                <ArrowPathIcon className="w-5 h-5 mr-2 animate-spin" />
+                处理中...
+              </>
+            ) : (
+              <>
+                <ArrowPathRoundedSquareIcon className="w-5 h-5 mr-2" />
+                {mode === 'encode' ? '编码' : '解码'}
+              </>
             )}
+          </button>
+        </div>
+      </div>
+
+      {/* 详细信息区域 - 可折叠 */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="w-full px-6 py-4 flex justify-between items-center text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+        >
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white">详细信息</h2>
+          <svg
+            className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${showDetails ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showDetails && (
+          <div className="px-6 py-4 space-y-6 border-t border-gray-200 dark:border-gray-700">
+            {/* Base64 原理说明 */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-4">Base64 编码原理</h3>
+              <div className="prose dark:prose-invert max-w-none">
+                <p className="text-gray-600 dark:text-gray-400">
+                  Base64 是一种基于 64 个可打印字符来表示二进制数据的表示方法。它将每 3 个字节的数据编码为 4 个可打印字符。
+                </p>
+                <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-600 dark:text-gray-400">
+                  <li>将输入数据按 3 字节分组</li>
+                  <li>将每组 3 字节（24 位）分成 4 个 6 位的块</li>
+                  <li>每个 6 位的块映射到 Base64 字符表中的对应字符</li>
+                  <li>如果最后一组不足 3 字节，用 = 填充</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 代码实现示例 - Tab 形式 */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-4">主流语言实现</h3>
+              
+              {/* Tab 导航 */}
+              <div className="border-b border-gray-200 dark:border-gray-700">
+                <nav className="flex space-x-8" aria-label="Tabs">
+                  {Object.entries(codeExamples).map(([key, { title }]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedLanguage(key as 'javascript' | 'python' | 'java')}
+                      className={`
+                        py-4 px-1 border-b-2 font-medium text-sm
+                        ${selectedLanguage === key
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                        }
+                      `}
+                    >
+                      {title}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+
+              {/* Tab 内容 */}
+              <div className="mt-4">
+                <pre className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto">
+                  <code className="text-sm text-gray-800 dark:text-gray-200">
+                    {codeExamples[selectedLanguage].code}
+                  </code>
+                </pre>
+              </div>
+            </div>
           </div>
         )}
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* 输入区域 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">{t('input')}</h2>
-            <button
-              onClick={handleClear}
-              className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors duration-200"
-              title={t('clear')}
-            >
-              <TrashIcon className="w-5 h-5" />
-            </button>
-          </div>
-          
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="w-full h-64 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-            placeholder={`${t('input')}...`}
-          ></textarea>
-          
-          {/* 密钥输入框（仅对特定工具显示） */}
-          {tool === 'aes' && (
-            <div className="mt-4">
-              <div className="flex items-center mb-2">
-                <KeyIcon className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-2" />
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">密钥</label>
-              </div>
-              <input
-                type="text"
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-                placeholder="输入加密/解密密钥..."
-              />
-            </div>
-          )}
-        </div>
-        
-        {/* 输出区域 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">{t('output')}</h2>
-            <button
-              onClick={handleCopy}
-              disabled={!result}
-              className={`text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors duration-200 ${!result ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={t('copy')}
-            >
-              <ClipboardDocumentIcon className="w-5 h-5" />
-            </button>
-          </div>
-          
-          <div className="w-full h-64 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white overflow-auto">
-            <pre className="whitespace-pre-wrap break-words">{processedResult}</pre>
-          </div>
-        </div>
-      </div>
-      
-      {/* 处理按钮 */}
-      <div className="flex flex-col sm:flex-row justify-center items-center mt-6 sm:mt-8">
-        <button
-          onClick={handleProcess}
-          disabled={isProcessing || !input}
-          className={`w-full sm:w-auto flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 ${(isProcessing || !input) ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          {isProcessing ? (
-            <>
-              <ArrowPathIcon className="w-5 h-5 mr-2 animate-spin" />
-              处理中...
-            </>
-          ) : (
-            <>
-              <ArrowPathRoundedSquareIcon className="w-5 h-5 mr-2" />
-              {t('process')}
-            </>
-          )}
-        </button>
-        <span className="text-xs text-gray-500 dark:text-gray-400 mt-2 sm:ml-4">
-          快捷键: {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} + Enter
-        </span>
       </div>
     </div>
   );
